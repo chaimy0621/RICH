@@ -1,0 +1,32 @@
+{
+  "_comment": "Static allowlist for bgtest source discovery. Edit conservatively. All changes are audited.",
+
+  "allowed_domains": [
+    "data.sec.gov",
+    "www.sec.gov",
+    "efts.sec.gov"
+  ],
+
+  "disallowed_keywords": [
+    "seekingalpha",
+    "motleyfool",
+    "fool.com",
+    "zacks",
+    "yahoo",
+    "marketwatch",
+    "bloomberg",
+    "reuters",
+    "cnbc",
+    "wsj",
+    "ft.com",
+    "barrons",
+    "thestreet",
+    "stockanalysis",
+    "macrotrends",
+    "benzinga",
+    "investopedia",
+    "tipranks",
+    "gurufocus",
+    "simplywall"
+  ]
+}

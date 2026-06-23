@@ -95,6 +95,11 @@ def build_universe(client: FMPClient | None = None) -> dict[str, Any]:
         volume = r.get("volume") or 0
         ddv = (price or 0) * (volume or 0)
         r["daily_dollar_volume_proxy"] = ddv
+        # P0: guarantee sector/industry keys exist on every eligible row so the
+        # pipeline can thread them into the candidate before scoring. company_screener
+        # already returns both; setdefault is a no-op when present.
+        r.setdefault("sector", None)
+        r.setdefault("industry", None)
         if ddv >= MIN_DAILY_DOLLAR_VOLUME:
             eligible.append(r)
         else:

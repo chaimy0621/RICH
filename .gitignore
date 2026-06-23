@@ -22,6 +22,24 @@ ENV/
 *.env.local
 *.env.production
 
+# ── Keys / credentials (NEVER commit) ──────────────────────────────────────────
+*.pem
+*.key
+*.p12
+*.pfx
+*.ppk
+id_rsa*
+id_ed25519*
+rich-prod-key.pem
+.ssh/
+
+# ── Vendored binaries / junk (too large / not source) ──────────────────────────
+moomoo_OpenD*/
+=
+
+# ── Local tooling state ────────────────────────────────────────────────────────
+.claude/settings.local.json
+
 # ── SQLite databases ───────────────────────────────────────────────────────────
 *.db
 *.sqlite

@@ -8,7 +8,6 @@ import requests
 from tenacity import (
     retry,
     retry_if_exception_type,
-    stop_after_attempt,
     wait_exponential,
 )
 
@@ -19,6 +18,26 @@ log = logging.getLogger(__name__)
 # (connect_timeout_s, read_timeout_s) — split so a slow-to-respond server
 # can't block a worker thread indefinitely even if the TCP handshake succeeds.
 DEFAULT_TIMEOUT = (10, 30)
+
+# DNS / connection failures (e.g. getaddrinfo / NameResolutionError) are
+# host-wide and usually transient — a brief blip at 04:00 should not lose the
+# whole day's run. Give *connection* errors a longer, more patient backoff
+# (~2 min total) than ordinary request errors, which keep the short backoff so
+# a genuinely-down API still fails fast per call.
+DNS_MAX_ATTEMPTS = 7
+
+
+def _retry_stop(retry_state) -> bool:
+    exc = retry_state.outcome.exception() if retry_state.outcome else None
+    limit = DNS_MAX_ATTEMPTS if isinstance(exc, requests.ConnectionError) else MAX_RETRIES
+    return retry_state.attempt_number >= limit
+
+
+def _retry_wait(retry_state) -> float:
+    exc = retry_state.outcome.exception() if retry_state.outcome else None
+    if isinstance(exc, requests.ConnectionError):
+        return wait_exponential(multiplier=2, min=5, max=60)(retry_state)
+    return wait_exponential(multiplier=1, min=2, max=10)(retry_state)
 
 
 class FMPError(RuntimeError):
@@ -36,8 +55,8 @@ class FMPClient:
         self.session = requests.Session()
 
     @retry(
-        stop=stop_after_attempt(MAX_RETRIES),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
+        stop=_retry_stop,
+        wait=_retry_wait,
         retry=retry_if_exception_type((requests.RequestException,)),
         reraise=True,
     )
@@ -108,3 +127,10 @@ class FMPClient:
     def company_screener(self, **filters: Any) -> list[dict[str, Any]]:
         """Pass filters as kwargs (marketCapMoreThan, country, exchange, ...)."""
         return self._get("/company-screener", filters) or []
+
+    def insider_trading_stats(self, symbol: str) -> list[dict[str, Any]]:
+        return self._get("/insider-trading/statistics", {"symbol": symbol}) or []
+
+    def executive_compensation(self, symbol: str, limit: int = 20) -> list[dict[str, Any]]:
+        return self._get("/governance-executive-compensation",
+                         {"symbol": symbol, "limit": limit}) or []

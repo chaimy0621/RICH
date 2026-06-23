@@ -79,6 +79,7 @@ def get_pick(run_date: str) -> dict | None:
 def get_top5(run_date: str) -> list[dict]:
     return _db_rows(
         "SELECT * FROM daily_picks WHERE run_date=? "
+        "AND recommendation_rank IS NOT NULL "
         "ORDER BY recommendation_rank LIMIT 5",
         (run_date,),
     )

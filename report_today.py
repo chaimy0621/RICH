@@ -144,6 +144,9 @@ def main() -> int:
     print(f"    size              : {size_bucket(mcap)}")
     print(f"    history available : {pick['historical_years_available']} years")
     print(f"    cooldown          : {cooldown_status(pick['run_date'])}")
+    if pick.get("sector_concentration_warning"):
+        print("    sector conc.      : WARNING - 2+ of today's top-5 share a sector "
+              "(warn only; nothing excluded)")
     print()
     print(f"  Reason: {pick['short_reason']}")
     print(bar)

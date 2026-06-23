@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Dinner Invitation</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ivory:    #FAF8F5;
+  --cream:    #F5F0E8;
+  --beige:    #E8DDD5;
+  --beige2:   #D8CECA;
+  --charcoal: #2C2C2C;
+  --rose:     #A87A82;
+  --rose-l:   #C4A5A5;
+  --rose-ll:  #DDD0D0;
+  --paper:    #FEFCF7;
+  --shadow:   rgba(44,44,44,0.09);
+}
+
+html { height: 100%; }
+body {
+  height: 100%;
+  background: var(--ivory);
+  color: var(--charcoal);
+  font-family: 'Inter', sans-serif;
+  overflow: hidden;
+}
+
+/* ── SCENE SYSTEM ───────────────────────────────────────── */
+.scene {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  transition: opacity 0.55s ease, visibility 0.55s ease;
+}
+.scene.out {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ── SCENE 1 · ENVELOPE ─────────────────────────────────── */
+#s-envelope { gap: 22px; }
+
+.env-wrap {
+  cursor: pointer;
+  width: min(300px, 82vw);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.env-wrap.bounce {
+  animation: env-bounce 0.45s cubic-bezier(0.36,0.07,0.19,0.97);
+}
+
+@keyframes env-bounce {
+  0%   { transform: scale(1)    rotate(0deg); }
+  25%  { transform: scale(1.05) rotate(-1.5deg); }
+  60%  { transform: scale(1.04) rotate(1.5deg); }
+  85%  { transform: scale(1.01) rotate(-0.5deg); }
+  100% { transform: scale(1)    rotate(0deg); }
+}
+
+.env-hint {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 15px;
+  color: var(--rose-l);
+  letter-spacing: 0.07em;
+  animation: breathe 3s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
+}
+
+/* ── SCENE 2 · LETTER ───────────────────────────────────── */
+#s-letter {
+  padding: 24px 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  justify-content: flex-start;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.letter-wrap {
+  width: 100%;
+  max-width: 460px;
+  margin: auto;
+  padding: 12px 0;
+}
+
+.letter-card {
+  background: var(--paper);
+  border: 1px solid var(--beige);
+  border-radius: 3px;
+  padding: clamp(30px, 8vw, 52px) clamp(22px, 7vw, 44px) 36px;
+  box-shadow: 0 6px 40px var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.letter-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--rose-ll), var(--rose-l), var(--rose-ll));
+}
+
+.letter-body {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(17px, 4.5vw, 20px);
+  line-height: 1.92;
+  color: var(--charcoal);
+  font-weight: 300;
+}
+
+.letter-salute {
+  font-size: clamp(20px, 5.2vw, 24px);
+  font-weight: 400;
+  display: block;
+  margin-bottom: 20px;
+}
+
+.letter-sig {
+  display: block;
+  margin-top: 28px;
+  font-style: italic;
+  color: var(--rose);
+  font-size: clamp(15px, 4vw, 17px);
+}
+
+.letter-rule {
+  width: 34px;
+  height: 1px;
+  background: var(--beige);
+  margin: 30px auto;
+}
+
+.letter-btns {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.btn {
+  font-family: 'Inter', sans-serif;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.03em;
+  border-radius: 2px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-solid {
+  background: var(--charcoal);
+  color: var(--ivory);
+  font-size: 14px;
+  font-weight: 400;
+  padding: 15px 28px;
+  width: 100%;
+  transition: background 0.2s ease;
+}
+
+.btn-solid:hover  { background: var(--rose); }
+.btn-solid:active { background: #6A5058; }
+
+#btn-trash {
+  background: transparent;
+  color: var(--rose-l);
+  font-size: 12px;
+  font-weight: 300;
+  padding: 8px 16px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--beige2);
+  transform-origin: center;
+  /* JS will animate transform + opacity */
+  transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+}
+
+#btn-trash:hover { color: var(--charcoal); }
+
+/* ── SCENE 3 · RESTAURANTS ──────────────────────────────── */
+#s-restaurants {
+  padding: 28px 16px 36px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  justify-content: flex-start;
+  align-items: center;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  gap: 0;
+}
+
+.rest-header {
+  text-align: center;
+  width: 100%;
+  max-width: 640px;
+  margin-bottom: 26px;
+  flex-shrink: 0;
+}
+
+.rest-header h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(22px, 5.5vw, 28px);
+  font-weight: 300;
+  color: var(--charcoal);
+  margin-bottom: 7px;
+}
+
+.rest-header p {
+  font-size: 13px;
+  color: var(--rose-l);
+  letter-spacing: 0.04em;
+}
+
+.rest-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  width: 100%;
+  max-width: 640px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 540px) {
+  .rest-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.rest-card {
+  background: var(--paper);
+  border: 1px solid var(--beige);
+  border-radius: 3px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 2px 10px var(--shadow);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.rest-card:hover {
+  border-color: var(--rose-l);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px var(--shadow);
+}
+
+.rest-card:active { transform: translateY(-1px); }
+
+/*
+  RESTAURANT PHOTOS
+  Replace each .rest-photo placeholder div with:
+    <img class="rest-photo" src="data:image/jpeg;base64,…" alt="…">
+  Use any base64 encoder on your JPEG/PNG files.
+*/
+.rest-photo {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--beige);
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 32px;
+  color: var(--rose-ll);
+}
+
+.rest-label {
+  padding: 10px 10px 13px;
+  text-align: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px;
+  font-style: italic;
+  color: var(--rose);
+}
+
+/* ── SCENE 4 · SUCCESS ──────────────────────────────────── */
+#s-success {
+  padding: 28px 20px 44px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  justify-content: flex-start;
+  align-items: center;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.char-svg {
+  width: min(190px, 56vw);
+  flex-shrink: 0;
+  margin-bottom: 22px;
+}
+
+.success-body {
+  text-align: center;
+  width: 100%;
+  max-width: 360px;
+  flex-shrink: 0;
+}
+
+.success-body h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: clamp(26px, 6.5vw, 32px);
+  font-weight: 300;
+  color: var(--charcoal);
+  margin-bottom: 10px;
+}
+
+.success-body > p {
+  font-size: 14px;
+  color: var(--rose-l);
+  line-height: 1.7;
+}
+
+.success-detail {
+  margin: 20px 0;
+  padding: 16px 24px;
+  background: var(--cream);
+  border: 1px solid var(--beige);
+  border-radius: 3px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  color: var(--charcoal);
+  line-height: 1.9;
+}
+
+.chosen-rest-name {
+  display: block;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--rose);
+  margin-top: 4px;
+}
+
+.rsvp-area {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.rsvp-area input {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1px solid var(--beige);
+  border-radius: 2px;
+  background: var(--paper);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--charcoal);
+  outline: none;
+  margin-bottom: 10px;
+  transition: border-color 0.2s;
+}
+
+.rsvp-area input:focus  { border-color: var(--rose-l); }
+.rsvp-area input::placeholder { color: var(--beige2); }
+
+.rsvp-status {
+  font-size: 13px;
+  color: var(--rose-l);
+  margin-top: 8px;
+  min-height: 18px;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     SCENE 1 · ENVELOPE
+══════════════════════════════════════ -->
+<div class="scene" id="s-envelope">
+  <div class="env-wrap" id="env" onclick="onEnvelopeClick()">
+    <svg viewBox="0 0 300 210" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- envelope body -->
+      <rect x="2" y="64" width="296" height="144" rx="3" fill="#FEFCF7" stroke="#D8CECA" stroke-width="1.5"/>
+      <!-- interior fold lines -->
+      <line x1="2"   y1="208" x2="150" y2="128" stroke="#EAE0D8" stroke-width="1"/>
+      <line x1="298" y1="208" x2="150" y2="128" stroke="#EAE0D8" stroke-width="1"/>
+      <line x1="2"   y1="64"  x2="150" y2="136" stroke="#EAE0D8" stroke-width="1"/>
+      <line x1="298" y1="64"  x2="150" y2="136" stroke="#EAE0D8" stroke-width="1"/>
+      <!-- flap (closed) -->
+      <path d="M2 64 L150 4 L298 64 Z" fill="#F5F0E8" stroke="#D8CECA" stroke-width="1.5"/>
+      <!-- wax seal -->
+      <circle cx="150" cy="62" r="18" fill="#A87A82" opacity="0.88"/>
+      <text x="150" y="68"
+            font-family="'Cormorant Garamond', serif"
+            font-size="15" fill="white"
+            text-anchor="middle"
+            font-style="italic"
+            font-weight="300">M</text>
+    </svg>
+  </div>
+  <p class="env-hint">tap to open</p>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     SCENE 2 · LETTER
+══════════════════════════════════════ -->
+<div class="scene out" id="s-letter">
+  <div class="letter-wrap">
+    <div class="letter-card">
+      <div class="letter-body">
+        <span class="letter-salute">Dear Tricia, hello.</span>
+        I would sincerely like to invite you to have dinner with me on
+        <strong>May 2, 2026</strong> at <strong>18:00</strong>.
+        <br><br>
+        If you are willing, I will truly look forward to seeing you.
+        <span class="letter-sig">— MUNYUAN</span>
+      </div>
+      <div class="letter-rule"></div>
+      <div class="letter-btns">
+        <button class="btn btn-solid" onclick="goRestaurants()">
+          Let me see the food first
+        </button>
+        <button class="btn" id="btn-trash" onclick="shrinkTrash()">
+          Read and throw into the trash
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     SCENE 3 · RESTAURANTS
+══════════════════════════════════════ -->
+<div class="scene out" id="s-restaurants">
+  <div class="rest-header">
+    <h2>Where shall we dine?</h2>
+    <p>Choose the one that speaks to you.</p>
+  </div>
+  <div class="rest-grid">
+
+    <!--
+      ─── HOW TO ADD YOUR PHOTOS ────────────────────────────────
+      Replace each <div class="rest-photo">…</div> with:
+        <img class="rest-photo" src="data:image/jpeg;base64,YOUR_BASE64" alt="Restaurant 1">
+
+      To get the base64 string:
+        • Online:  base64.guru/converter/encode/image
+        • Python:  python -c "import base64,sys; print(base64.b64encode(open(sys.argv[1],'rb').read()).decode())" photo1.jpg
+
+      You can also set a custom label in .rest-label below each card.
+      ─────────────────────────────────────────────────────────── -->
+
+    <div class="rest-card" onclick="goSuccess(1)">
+      <div class="rest-photo">①</div>
+      <div class="rest-label">Option One</div>
+    </div>
+
+    <div class="rest-card" onclick="goSuccess(2)">
+      <div class="rest-photo">②</div>
+      <div class="rest-label">Option Two</div>
+    </div>
+
+    <div class="rest-card" onclick="goSuccess(3)">
+      <div class="rest-photo">③</div>
+      <div class="rest-label">Option Three</div>
+    </div>
+
+    <div class="rest-card" onclick="goSuccess(4)">
+      <div class="rest-photo">④</div>
+      <div class="rest-label">Option Four</div>
+    </div>
+
+    <div class="rest-card" onclick="goSuccess(5)">
+      <div class="rest-photo">⑤</div>
+      <div class="rest-label">Option Five</div>
+    </div>
+
+    <div class="rest-card" onclick="goSuccess(6)">
+      <div class="rest-photo">⑥</div>
+      <div class="rest-label">Option Six</div>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     SCENE 4 · SUCCESS
+══════════════════════════════════════ -->
+<div class="scene out" id="s-success">
+
+  <!--
+    CHARACTER ILLUSTRATION
+    Male · black shirt · white long pants · holding flowers
+    Drawn in SVG; illustration style, not photo-realistic.
+  -->
+  <svg class="char-svg" viewBox="0 0 200 330" xmlns="http://www.w3.org/2000/svg">
+
+    <!-- ── Shoes ── -->
+    <ellipse cx="80"  cy="318" rx="22" ry="8" fill="#C8C8C4"/>
+    <ellipse cx="120" cy="318" rx="22" ry="8" fill="#C8C8C4"/>
+
+    <!-- ── White trousers ── -->
+    <!-- left leg -->
+    <path d="M80 182 C78 228 76 272 74 310 Q82 314 92 312 Q94 268 96 182 Z"
+          fill="#F8F8F6" stroke="#DCDCD8" stroke-width="1.2"/>
+    <!-- right leg -->
+    <path d="M104 182 C106 228 109 272 112 310 Q120 314 126 312 Q124 268 122 182 Z"
+          fill="#F8F8F6" stroke="#DCDCD8" stroke-width="1.2"/>
+    <!-- waistband crease -->
+    <rect x="80" y="176" width="40" height="9" rx="2" fill="#EEEEEA"/>
+
+    <!-- ── Black shirt ── -->
+    <path d="M72 122 Q70 142 70 178 L130 178 Q130 142 128 122
+             Q114 110 100 110 Q86 110 72 122 Z" fill="#282828"/>
+    <!-- V-collar detail -->
+    <path d="M94 110 L100 126 L106 110" fill="#1E1E1E"/>
+
+    <!-- ── Left arm (natural, at side) ── -->
+    <path d="M72 122 Q60 120 55 138 Q49 162 52 180
+             Q58 183 65 180 Q62 162 67 142 Q70 130 73 124 Z"
+          fill="#282828"/>
+    <!-- left hand -->
+    <ellipse cx="58"  cy="182" rx="10" ry="8.5" fill="#E0A86A"/>
+
+    <!-- ── Right arm (raised slightly, holding bouquet) ── -->
+    <path d="M128 122 Q142 118 150 134 Q158 156 155 172
+             Q148 177 141 173 Q144 156 139 136 Q133 124 130 122 Z"
+          fill="#282828"/>
+    <!-- right hand -->
+    <ellipse cx="148" cy="174" rx="10" ry="8.5" fill="#E0A86A"/>
+
+    <!-- ── Flower stems from right hand ── -->
+    <path d="M148 167 C147 148 147 130 146 110"
+          stroke="#4E7A50" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    <path d="M151 166 C154 146 158 128 162 106"
+          stroke="#4E7A50" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    <path d="M145 167 C141 148 137 128 132 105"
+          stroke="#4E7A50" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+
+    <!-- leaves -->
+    <ellipse cx="150" cy="138" rx="8"  ry="3" fill="#6BA06B" transform="rotate(-28 150 138)"/>
+    <ellipse cx="140" cy="135" rx="8"  ry="3" fill="#6BA06B" transform="rotate(22 140 135)"/>
+    <ellipse cx="155" cy="128" rx="7"  ry="2.8" fill="#5E904E" transform="rotate(-15 155 128)"/>
+
+    <!-- ── Flower blooms ── -->
+    <!-- centre bloom (muted rose) -->
+    <circle cx="146" cy="101" r="13" fill="#C4A5A5"/>
+    <circle cx="146" cy="101" r="8.5" fill="#AA8888"/>
+    <circle cx="146" cy="101" r="4"   fill="#8A6060"/>
+    <!-- left bloom (lighter) -->
+    <circle cx="132" cy="97"  r="11" fill="#D4B5BB"/>
+    <circle cx="132" cy="97"  r="7"  fill="#BF9898"/>
+    <circle cx="132" cy="97"  r="3.2" fill="#9A7070"/>
+    <!-- right bloom (lighter) -->
+    <circle cx="162" cy="98"  r="11" fill="#D4B5BB"/>
+    <circle cx="162" cy="98"  r="7"  fill="#B89090"/>
+    <circle cx="162" cy="98"  r="3.2" fill="#987070"/>
+    <!-- small accent buds -->
+    <circle cx="122" cy="102" r="6" fill="#DDD2D2"/>
+    <circle cx="170" cy="104" r="6" fill="#DDD2D2"/>
+
+    <!-- ── Neck ── -->
+    <rect x="90" y="97" width="20" height="17" rx="2" fill="#E0A86A"/>
+
+    <!-- ── Head ── -->
+    <ellipse cx="100" cy="72" rx="33" ry="34" fill="#E0A86A"/>
+
+    <!-- ── Hair (dark, neat) ── -->
+    <path d="M67 68 Q71 42 100 39 Q129 42 133 68
+             Q127 51 118 48 Q100 44 82 48 Q73 51 67 68 Z"
+          fill="#1A1A1A"/>
+    <!-- hair side taper lines -->
+    <path d="M67 68 Q70 56 74 53" stroke="#1A1A1A" stroke-width="3"
+          fill="none" stroke-linecap="round"/>
+    <path d="M133 68 Q130 56 126 53" stroke="#1A1A1A" stroke-width="3"
+          fill="none" stroke-linecap="round"/>
+
+    <!-- ── Ears ── -->
+    <ellipse cx="67"  cy="73" rx="5.5" ry="7.5" fill="#D09860"/>
+    <ellipse cx="133" cy="73" rx="5.5" ry="7.5" fill="#D09860"/>
+
+    <!-- ── Eyes ── -->
+    <!-- left -->
+    <ellipse cx="86"  cy="75" rx="6.5" ry="7"   fill="white"/>
+    <ellipse cx="86"  cy="76" rx="4.5" ry="5"   fill="#222"/>
+    <ellipse cx="87.8" cy="74.2" rx="1.6" ry="1.6" fill="white"/>
+    <!-- right -->
+    <ellipse cx="114" cy="75" rx="6.5" ry="7"   fill="white"/>
+    <ellipse cx="114" cy="76" rx="4.5" ry="5"   fill="#222"/>
+    <ellipse cx="115.8" cy="74.2" rx="1.6" ry="1.6" fill="white"/>
+
+    <!-- ── Eyebrows (relaxed, not raised) ── -->
+    <path d="M80 63 Q86 60.5 92 63" stroke="#1A1A1A" stroke-width="2.2"
+          fill="none" stroke-linecap="round"/>
+    <path d="M108 63 Q114 60.5 120 63" stroke="#1A1A1A" stroke-width="2.2"
+          fill="none" stroke-linecap="round"/>
+
+    <!-- ── Nose ── -->
+    <path d="M97 82 Q100 86 103 82" stroke="#C08050" stroke-width="1.8"
+          fill="none" stroke-linecap="round"/>
+
+    <!-- ── Warm, sincere smile ── -->
+    <path d="M87 91 Q100 100 113 91" stroke="#B86840" stroke-width="2.2"
+          fill="none" stroke-linecap="round"/>
+    <!-- subtle dimples -->
+    <circle cx="85"  cy="92" r="1.8" fill="#C8865A" opacity="0.45"/>
+    <circle cx="115" cy="92" r="1.8" fill="#C8865A" opacity="0.45"/>
+
+  </svg>
+
+  <div class="success-body">
+    <h2>Wonderful.</h2>
+    <p>He'll be there, looking forward to it.</p>
+
+    <div class="success-detail">
+      <strong>May 2, 2026</strong> &nbsp;·&nbsp; 18:00
+      <span class="chosen-rest-name" id="chosen-rest-name"></span>
+    </div>
+
+    <!--
+      EMAILJS RSVP
+      Configure EMAILJS_PUBLIC_KEY, EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID
+      in the <script> block below.
+      The form sends a notification to MUNYUAN that Tricia accepted,
+      and optionally includes Tricia's email for a reminder.
+    -->
+    <div class="rsvp-area">
+      <input type="email" id="rsvp-email"
+             placeholder="Your email — for a reminder (optional)">
+      <button class="btn btn-solid" onclick="sendRSVP()">
+        Confirm &amp; Send
+      </button>
+      <div class="rsvp-status" id="rsvp-status"></div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+/* ══════════════════════════════════════
+   CONFIG — fill in your EmailJS details
+   ══════════════════════════════════════
+   1. Sign up at emailjs.com
+   2. Create a service (Gmail / Outlook / etc.)
+   3. Create a template with variables:
+        {{to_email}}     — Tricia's email (reminder)
+        {{restaurant}}   — chosen restaurant label
+        {{event_date}}   — "May 2, 2026"
+        {{event_time}}   — "18:00"
+      Set "To Email" in the template to MUNYUAN's address so he is notified.
+*/
+const EMAILJS_PUBLIC_KEY  = 'YOUR_PUBLIC_KEY';
+const EMAILJS_SERVICE_ID  = 'YOUR_SERVICE_ID';
+const EMAILJS_TEMPLATE_ID = 'YOUR_TEMPLATE_ID';
+/* ══════════════════════════════════════ */
+
+try { emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY }); } catch (_) {}
+
+/* Restaurant label map — update if you rename the cards */
+const REST_LABELS = [
+  '', 'Option One', 'Option Two', 'Option Three',
+  'Option Four', 'Option Five', 'Option Six'
+];
+
+let trashClicks  = 0;
+const TRASH_MAX  = 7;
+
+/* ── Scene switcher ─────────────────── */
+function showScene(id) {
+  document.querySelectorAll('.scene').forEach(s => s.classList.add('out'));
+  document.getElementById(id).classList.remove('out');
+  document.getElementById(id).scrollTop = 0;
+}
+
+/* ── Envelope click ─────────────────── */
+function onEnvelopeClick() {
+  const env = document.getElementById('env');
+  if (env.classList.contains('bounce')) return;
+  env.classList.add('bounce');
+  env.addEventListener('animationend', () => {
+    showScene('s-letter');
+  }, { once: true });
+}
+
+/* ── Trash button shrink ────────────── */
+function shrinkTrash() {
+  trashClicks++;
+  const btn   = document.getElementById('btn-trash');
+  const scale = Math.pow(0.74, trashClicks);
+  const alpha = Math.max(0, 1 - trashClicks * 0.14);
+  btn.style.transform = `scale(${scale})`;
+  btn.style.opacity   = alpha;
+
+  if (trashClicks >= TRASH_MAX) {
+    btn.style.pointerEvents = 'none';
+    /* After it vanishes, gracefully guide to restaurants */
+    setTimeout(goRestaurants, 700);
+  }
+}
+
+/* ── Navigation ─────────────────────── */
+function goRestaurants() {
+  showScene('s-restaurants');
+}
+
+function goSuccess(n) {
+  document.getElementById('chosen-rest-name').textContent = REST_LABELS[n] || '';
+  showScene('s-success');
+}
+
+/* ── EmailJS send ───────────────────── */
+function sendRSVP() {
+  const email  = document.getElementById('rsvp-email').value.trim();
+  const status = document.getElementById('rsvp-status');
+  const rest   = document.getElementById('chosen-rest-name').textContent;
+
+  if (!email) {
+    status.textContent = 'Please enter your email address.';
+    return;
+  }
+
+  if (EMAILJS_PUBLIC_KEY === 'YOUR_PUBLIC_KEY') {
+    status.textContent = 'EmailJS is not configured yet — skipping.';
+    return;
+  }
+
+  status.textContent = 'Sending…';
+
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+    to_email:   email,
+    restaurant: rest,
+    event_date: 'May 2, 2026',
+    event_time: '18:00',
+  }).then(() => {
+    status.textContent = 'Confirmation sent. See you on May 2nd.';
+    document.getElementById('rsvp-email').value = '';
+  }).catch(() => {
+    status.textContent = 'Could not send — please try again.';
+  });
+}
+</script>
+</body>
+</html>

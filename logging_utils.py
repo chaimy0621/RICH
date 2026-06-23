@@ -106,6 +106,9 @@ def append_run_metrics(
         "t_valuation_s":        stage_t.get("valuation", ""),
         "t_cooldown_s":         stage_t.get("cooldown", ""),
         "t_persist_s":          stage_t.get("persist", ""),
+        # ── §3 Beneish growth exemption (log-only count; appended last so the
+        #    existing column order is preserved) ──────────────────────────────
+        "BENEISH_GROWTH_EXEMPT": result.get("beneish_growth_exempt", 0),
     }
 
     exists = csv_path.exists()

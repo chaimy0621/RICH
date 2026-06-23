@@ -84,6 +84,19 @@ def _sleeve_avg(norms: dict[str, float | None], metrics: list[str]) -> float:
     return round(sum(vals) / len(vals), 1) if vals else 0.0
 
 
+def spike_adjusted_growth(growth_score: float, revenue_consistency_flag,
+                          penalty: float) -> float:
+    """Shadow-only growth-sleeve adjustment for one-time revenue spikes (P4 / §4).
+
+    Returns ``growth_score - penalty`` when the spike flag is set, else
+    ``growth_score`` unchanged (clamped to >= 0). Pure and side-effect-free: the
+    live growth_score and total_score are never modified — the caller stores the
+    result in a separate shadow column (growth_score_spike_adj).
+    """
+    adj = growth_score - penalty if revenue_consistency_flag else growth_score
+    return round(max(0.0, adj), 1)
+
+
 def score(factors: dict[str, Any]) -> dict[str, Any]:
     """Compute normalized metric scores, sleeve scores, total, and drivers."""
     norms: dict[str, float | None] = {}

@@ -5,18 +5,26 @@ reason codes for every rejected ticker.
 """
 from __future__ import annotations
 
+import logging
 from typing import Any
 
-from config import MIN_HISTORICAL_YEARS
+from config import (
+    MIN_HISTORICAL_YEARS,
+    BENEISH_GROWTH_EXEMPT_THRESHOLD,
+    BENEISH_GROWTH_EXEMPT_LIVE,
+)
 from factors import METRIC_NAMES, extract
 from data.fetcher import FMPClient, FMPError
 import beneish
+
+log = logging.getLogger(__name__)
 
 # Reject reason codes
 R_FETCH_ERROR = "FETCH_ERROR"
 R_HIST_LT_5 = "HIST_LT_5"
 R_REV_NONPOSITIVE = "REV_NONPOSITIVE"
 R_NI_OCF_NONPOSITIVE = "NI_OCF_NONPOSITIVE"
+R_OCF_NEGATIVE = "OCF_NEGATIVE"
 R_MISSING_FIELDS = "MISSING_FIELDS"
 R_BENEISH_FLAG = "BENEISH_FLAG"
 
@@ -53,15 +61,38 @@ def screen_ticker(symbol: str, client: FMPClient | None = None) -> dict[str, Any
                 "reason": R_NI_OCF_NONPOSITIVE,
                 "detail": f"ni={ni}, ocf={ocf}"}
 
+    if ocf is None or ocf <= 0:
+        return {"symbol": symbol, "pass": False, "factors": f,
+                "reason": R_OCF_NEGATIVE,
+                "detail": f"ocf={ocf}"}
+
     bm = beneish.compute(f["_inc_rows"], f["_bs_rows"], f["_cf_rows"])
     m_score = bm["m_score"]
     f["m_score"] = m_score
     f["beneish_flag"] = 1 if (m_score is not None and m_score > BENEISH_THRESHOLD) else 0
 
     if m_score is not None and m_score > BENEISH_THRESHOLD:
-        return {"symbol": symbol, "pass": False, "factors": f,
-                "reason": R_BENEISH_FLAG,
-                "detail": f"M={m_score:.3f}"}
+        # §3 growth exemption (log-only by default): high-growth, stable-margin
+        # firms can trip the M-Score gate on legitimate AR/revenue expansion.
+        # Qualify only when M sits in (BENEISH_THRESHOLD, EXEMPT_THRESHOLD].
+        exempt = (
+            f.get("revenue_cagr_3y") is not None
+            and f["revenue_cagr_3y"] > 0.25
+            and f.get("gross_margin_stable") is True
+            and m_score <= BENEISH_GROWTH_EXEMPT_THRESHOLD
+        )
+        if exempt and BENEISH_GROWTH_EXEMPT_LIVE:
+            log.info("BENEISH_GROWTH_EXEMPT %s M=%.3f rev_cagr_3y=%.2f gm_stable=True "
+                     "(LIVE: admitted)", symbol, m_score, f["revenue_cagr_3y"])
+            # fall through — do not reject
+        else:
+            if exempt:
+                log.info("BENEISH_GROWTH_EXEMPT %s M=%.3f rev_cagr_3y=%.2f gm_stable=True "
+                         "(log-only: still rejected)", symbol, m_score, f["revenue_cagr_3y"])
+            return {"symbol": symbol, "pass": False, "factors": f,
+                    "reason": R_BENEISH_FLAG,
+                    "detail": f"M={m_score:.3f}",
+                    "beneish_growth_exempt": exempt}
 
     missing = [m for m in METRIC_NAMES if f.get(m) is None]
     if missing:
